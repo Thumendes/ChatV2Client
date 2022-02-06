@@ -11,7 +11,7 @@ import {
 import { ChangeEvent, FormEvent, useState } from "react";
 import { api } from "services/api";
 
-export const RegisterForm = () => {
+const RegisterForm = () => {
   const initialValues = {
     name: "",
     email: "",
@@ -83,3 +83,5 @@ export const RegisterForm = () => {
     </chakra.form>
   );
 };
+
+export default RegisterForm;

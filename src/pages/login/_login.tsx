@@ -13,7 +13,7 @@ import { ChangeEvent, FormEvent, useState } from "react";
 import { api } from "services/api";
 import Storage from "services/Storage";
 
-export const LoginForm = () => {
+const LoginForm = () => {
   const initialValues = {
     email: "",
     password: "",
@@ -83,3 +83,5 @@ export const LoginForm = () => {
     </chakra.form>
   );
 };
+
+export default LoginForm;
