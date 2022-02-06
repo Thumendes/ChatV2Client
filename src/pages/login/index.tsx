@@ -9,11 +9,9 @@ const Home: NextPage = () => {
     <Layout>
       <Flex>
         <LoginForm />
-
         <Center>
           <Text>ou</Text>
         </Center>
-
         <RegisterForm />
       </Flex>
     </Layout>
