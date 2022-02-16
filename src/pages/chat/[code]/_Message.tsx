@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { Message } from "context/chat";
 import { useUser } from "context/user";
+import { Utils } from "helpers/Utils";
 import React from "react";
 import Attachment from "./_Attachment";
 
@@ -41,7 +42,9 @@ const Message: React.FC<MessageProps> = ({ item }) => {
         direction={isMe ? "row-reverse" : "row"}
         w={["80%", "80%", "80%", "60%"]}
       >
-        <Avatar src={item.sender.avatar || undefined} />
+        <Avatar
+          src={Utils.fileUrl(item.sender.avatar || "", "avatar") || undefined}
+        />
 
         <Flex
           rounded="md"

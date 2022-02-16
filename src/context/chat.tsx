@@ -9,6 +9,7 @@ import React, {
   useEffect,
   useRef,
   RefObject,
+  useCallback,
 } from "react";
 import { api } from "services/api";
 import { ws } from "services/websocket";
@@ -71,42 +72,45 @@ const ChatContextProvider: React.FC = ({ children }) => {
   const toast = useToast();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  async function scrollToBottom() {
+  const scrollToBottom = useCallback(async () => {
     await Utils.sleep(100);
     if (!messagesContainerRef.current) return;
 
     const { scrollHeight, clientHeight } = messagesContainerRef.current;
 
     messagesContainerRef.current.scrollTop = scrollHeight;
-  }
+  }, []);
 
-  async function joinRoom(code: string) {
-    return new Promise<boolean>((resolve) => {
-      if (!user) return;
+  const joinRoom = useCallback(
+    async (code: string) => {
+      return new Promise<boolean>((resolve) => {
+        if (!user) return;
 
-      const payload = { userId: user.id, code };
+        const payload = { userId: user.id, code };
 
-      function onResponse(res: WsResponse) {
-        if (!res.success) {
-          toast({ status: "error", title: "Error", description: res.msg });
-          resolve(false);
+        function onResponse(res: WsResponse) {
+          if (!res.success) {
+            toast({ status: "error", title: "Error", description: res.msg });
+            resolve(false);
+          }
+
+          toast({
+            status: "success",
+            title: "Boaaa!",
+            description: "Room joined",
+          });
+
+          setRoom(res.data);
+          resolve(true);
         }
 
-        toast({
-          status: "success",
-          title: "Boaaa!",
-          description: "Room joined",
-        });
+        ws.send("joinRoom", payload, onResponse);
+      });
+    },
+    [toast, user]
+  );
 
-        setRoom(res.data);
-        resolve(true);
-      }
-
-      ws.send("joinRoom", payload, onResponse);
-    });
-  }
-
-  async function leaveRoom() {
+  const leaveRoom = useCallback(async () => {
     return new Promise<boolean>((resolve) => {
       if (!user || !room) return;
 
@@ -128,35 +132,58 @@ const ChatContextProvider: React.FC = ({ children }) => {
 
       ws.send("leaveRoom", room.id, onRespose);
     });
-  }
+  }, [room, toast, user]);
 
-  async function sendFiles(files: FileList) {
-    console.log(user, room);
-    if (!user || !room) return;
+  const sendFiles = useCallback(
+    async (files: FileList) => {
+      console.log(user, room);
+      if (!user || !room) return;
 
-    const formData = new FormData();
+      const formData = new FormData();
 
-    for (const [index, file] of [...files].entries()) {
-      formData.append(`field${index}`, file);
-    }
+      for (const [index, file] of [...files].entries()) {
+        formData.append(`field${index}`, file);
+      }
 
-    const [res, error] = await api.post("/chat/upload", formData);
-    console.log(res);
+      const [res, error] = await api.post("/chat/upload", formData);
+      console.log(res);
 
-    if (error) {
-      toast({ status: "error", title: "Error", description: error.msg });
-      return;
-    }
+      if (error) {
+        toast({ status: "error", title: "Error", description: error.msg });
+        return;
+      }
 
-    toast({ title: "Boaaa!", description: "Arquivos enviado!" });
+      toast({ title: "Boaaa!", description: "Arquivos enviado!" });
 
-    for (const file of res.data) {
+      for (const file of res.data) {
+        const payload: SendMessagePayload = {
+          text: "",
+          date: new Date(),
+          roomId: room.id,
+          senderId: user.id,
+          attachment: { url: file.url, type: file.type },
+        };
+
+        const onResponse = async (res: Message) => {
+          setMessages((prev) => [...prev, res]);
+          await scrollToBottom();
+        };
+
+        ws.send("sendMessage", payload, onResponse);
+      }
+    },
+    [room, toast, user, scrollToBottom]
+  );
+
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!room || !user) return;
+
       const payload: SendMessagePayload = {
-        text: "",
+        text,
         date: new Date(),
         roomId: room.id,
         senderId: user.id,
-        attachment: { url: file.url, type: file.type },
       };
 
       const onResponse = async (res: Message) => {
@@ -165,42 +192,31 @@ const ChatContextProvider: React.FC = ({ children }) => {
       };
 
       ws.send("sendMessage", payload, onResponse);
-    }
-  }
+    },
+    [room, user]
+  );
 
-  async function sendMessage(text: string) {
-    if (!room || !user) return;
-
-    const payload: SendMessagePayload = {
-      text,
-      date: new Date(),
-      roomId: room.id,
-      senderId: user.id,
-    };
-
-    const onResponse = async (res: Message) => {
-      setMessages((prev) => [...prev, res]);
-      await scrollToBottom();
-    };
-
-    ws.send("sendMessage", payload, onResponse);
-  }
-
-  async function onNewMessage(data: Message) {
+  const onNewMessage = useCallback(async (data: Message) => {
     setMessages((prev) => [...prev, data]);
     await scrollToBottom();
-  }
+  }, []);
 
-  async function onUserJoined(user: User) {
-    console.log("Usuário entrou", user);
-    toast({ title: "Usuário entrou!", description: user.name });
-  }
+  const onUserJoined = useCallback(
+    async (user: User) => {
+      console.log("Usuário entrou", user);
+      toast({ title: "Usuário entrou!", description: user.name });
+    },
+    [toast]
+  );
 
-  async function onUserLeft(user: User) {
-    toast({ title: "Usuário saiu!", description: user.name });
-  }
+  const onUserLeft = useCallback(
+    async (user: User) => {
+      toast({ title: "Usuário saiu!", description: user.name });
+    },
+    [toast]
+  );
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     if (!user || !room) return;
 
     const [res, error] = await api.get(`/chat/messages/${room.code}`);
@@ -213,7 +229,7 @@ const ChatContextProvider: React.FC = ({ children }) => {
 
     setMessages(messagesOrdered);
     await scrollToBottom();
-  }
+  }, [room, user, scrollToBottom]);
 
   useEffect(() => {
     if (!query.code || !user) return;

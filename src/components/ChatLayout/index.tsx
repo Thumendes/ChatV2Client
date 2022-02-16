@@ -20,11 +20,11 @@ import { useChat } from "context/chat";
 import { ContainerHeight, ListRoomWidth } from "data/constants";
 import { useUser } from "context/user";
 import NewRoom from "./NewRoom";
+import UserProfile from "./UserProfile";
 
 const ChatLayout: React.FC = ({ children }) => {
   const { rooms, error, isLoading } = useRooms();
-  const { joinRoom, room } = useChat();
-  const { user } = useUser();
+  const { joinRoom } = useChat();
   const toast = useToast();
 
   async function handleEnterRoom(code: string | undefined) {
@@ -58,13 +58,7 @@ const ChatLayout: React.FC = ({ children }) => {
           align="start"
           w={ListRoomWidth}
         >
-          <Flex align="center" w="full" rounded="lg" p={2} bg={userBg} gap={4}>
-            <Avatar />
-            <Box>
-              <Text>{user?.name}</Text>
-              <Text fontWeight="bold">{room?.name}</Text>
-            </Box>
-          </Flex>
+          <UserProfile />
 
           <NewRoom onSubmit={handleCreateRoom} />
 

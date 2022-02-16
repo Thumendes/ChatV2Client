@@ -1,13 +1,15 @@
 import React from "react";
 import type { Attachment as AttachmentType } from "context/chat";
 import { Image } from "@chakra-ui/react";
+import { Utils } from "helpers/Utils";
+import AudioPlayer from "components/Audio";
 
 interface AttachmentProps {
   item: AttachmentType;
 }
 
 const Attachment: React.FC<AttachmentProps> = ({ item }) => {
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/attachments/${item.url}`;
+  const url = Utils.fileUrl(item.url, "attachments");
 
   switch (item.type) {
     case "IMAGE":
@@ -17,7 +19,7 @@ const Attachment: React.FC<AttachmentProps> = ({ item }) => {
       return <video src={url} controls />;
 
     case "AUDIO":
-      return <audio src={url} controls />;
+      return <AudioPlayer url={url} />;
 
     case "FILE":
       return <a href={url}>{item.url}</a>;
